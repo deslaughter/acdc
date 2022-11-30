@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>ACDC</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+    <link type="text/css" rel="stylesheet" href="https://unpkg.com/bootstrap@4.6.2/dist/css/bootstrap.min.css" />
+    <link type="text/css" rel="stylesheet" href="https://unpkg.com/bootstrap-vue@2.22.0/dist/bootstrap-vue.min.css" />
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es2015%2CIntersectionObserver"
+        crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/vue@2.6.12/dist/vue.min.js"></script>
+    <script src="https://unpkg.com/bootstrap-vue@2.22.0/dist/bootstrap-vue.min.js"></script>
+    <script src="https://unpkg.com/bootstrap-vue@2.22.0/dist/bootstrap-vue-icons.min.js"></script>
+</head>
+
+<body>
+    <div id="app" v-cloak>
+        <b-container v-if="loaded">
+
+            <b-card header="Turbine" class="mb-3">
+                <b-form-file ref="modelUpload" @change="filterModelFiles" class="d-none" no-traverse directory multiple>
+                </b-form-file>
+                <b-button @click="selectModelDir" variant="primary" block>Select Model
+                    Directory
+                </b-button>
+                <div v-if="modelFiles.length > 0">
+                    <b-button @click="importModel" variant="success" class="mt-3" block>Import Files</b-button>
+                    <table class="table table-sm mt-3 mb-0">
+                        <tr>
+                            <td>File</td>
+                            <td>Size (bytes)</td>
+                            <td></td>
+                        </tr>
+                        <tr v-for="file, i in modelFiles">
+                            <td>{{ file.$path }}</td>
+                            <td>{{ file.size }}</td>
+                            <td>
+                                <b-button size="sm" @click="modelFiles.splice(i, 1)" variant="outline-danger">Remove
+                                </b-button>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </b-card>
+
+            <b-card header="Conditions" class="mb-3">
+
+                <table class="table table-sm">
+                    <tr>
+                        <td>Wind Speed</td>
+                        <td>Rotor Speed</td>
+                        <td>Blade Pitch</td>
+                        <td>Tower Top Initial<br>Displacement Fore-Aft</td>
+                        <td>Tower Top Initial<br>Displacement Side-Side</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>(m/s)</td>
+                        <td>(rpm)</td>
+                        <td>(deg)</td>
+                        <td>(m)</td>
+                        <td>(m)</td>
+                        <td></td>
+                    </tr>
+                    <tr v-for="c,i in analysis.Conditions">
+                        <td>{{ c.WindSpeed }}</td>
+                        <td>{{ c.RotorSpeed }}</td>
+                        <td>{{ c.BladePitch }}</td>
+                        <td>{{ c.TowerTopDispForeAft }}</td>
+                        <td>{{ c.TowerTopDispSideSide }}</td>
+                        <td>
+                            <b-button @click="removeConditions" size="sm" block>Remove</b-button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <b-form-input number v-model="conditions.WindSpeed"></b-form-input>
+                        </td>
+                        <td>
+                            <b-form-input number v-model="conditions.RotorSpeed"></b-form-input>
+                        </td>
+                        <td>
+                            <b-form-input number v-model="conditions.BladePitch"></b-form-input>
+                        </td>
+                        <td>
+                            <b-form-input number v-model="conditions.TowerTopDispForeAft"></b-form-input>
+                        </td>
+                        <td>
+                            <b-form-input number v-model="conditions.TowerTopDispSideSide"></b-form-input>
+                        </td>
+                        <td>
+                            <b-button @click="addConditions" size="sm" block>Add</b-button>
+                        </td>
+                    </tr>
+                </table>
+            </b-card>
+
+            <b-card header="Evaluate" class="mb-3">
+                <b-form-group label="OpenFAST Path" description="Absolute path to OpenFAST executable."
+                    :state="analysis.ExecPath.length>0">
+                    <b-form-input v-model="analysis.ExecPath" :state="analysis.ExecPath.length>0" trim></b-form-input>
+                </b-form-group>
+                <!-- <b-form-group label="Analysis Type" description="Minimum wind speed for evaluation">
+                    <b-form-input number v-model="analysis.MinWindSpeed">
+                    </b-form-input>
+                </b-form-group>
+                <b-form-group label="Minimum Wind Speed" description="Minimum wind speed for evaluation"
+                    :state="analysis.MinWindSpeed>=0">
+                    <b-form-input number v-model="analysis.MinWindSpeed" :state="analysis.MinWindSpeed>=0">
+                    </b-form-input>
+                    <b-form-input number v-model="analysis.MaxWindSpeed" :state="analysis.MaxWindSpeed>=0">
+                    </b-form-input>
+                </b-form-group> -->
+                <!-- <b-form-group label="Maximum Wind Speed" description="Maximum wind speed for evaluation"
+                    :state="analysis.MaxWindSpeed>=0">
+                    </b-form-input>
+                </b-form-group> -->
+                <!-- <b-form-group label="Minimum Rotor Speed" description="Minimum rotor speed for evaluation"
+                    :state="analysis.MinRotorSpeed>=0">
+                    <b-form-input number v-model="analysis.MinRotorSpeed" :state="analysis.MinRotorSpeed>=0">
+                    </b-form-input>
+                </b-form-group>
+                <b-form-group label="Maximum Rotor Speed" description="Maximum rotor speed for evaluation"
+                    :state="analysis.MaxRotorSpeed>=0">
+                    <b-form-input number v-model="analysis.MaxRotorSpeed" :state="analysis.MaxRotorSpeed>=0">
+                    </b-form-input>
+                </b-form-group> -->
+            </b-card>
+
+        </b-container>
+    </div>
+    <script type="module">
+        import App from './static/main.js'
+        const app = new Vue(App)
+    </script>
+</body>
+
+</html>
