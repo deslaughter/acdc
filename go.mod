@@ -1,4 +1,4 @@
-module acdc
+module github.com/deslaughter/acdc
 
 go 1.19
 

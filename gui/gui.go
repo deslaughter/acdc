@@ -1,9 +1,6 @@
 package gui
 
 import (
-	"acdc"
-	"acdc/anl"
-	"acdc/input"
 	"context"
 	"embed"
 	"encoding/json"
@@ -14,6 +11,10 @@ import (
 	"os"
 	"sort"
 	"time"
+
+	"github.com/deslaughter/acdc"
+	"github.com/deslaughter/acdc/anl"
+	"github.com/deslaughter/acdc/input"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"

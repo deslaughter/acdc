@@ -1,10 +1,11 @@
 package acdc_test
 
 import (
-	"acdc"
 	"context"
 	"path/filepath"
 	"testing"
+
+	"github.com/deslaughter/acdc"
 )
 
 func TestEvalConditions(t *testing.T) {

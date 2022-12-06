@@ -1,8 +1,6 @@
 package anl
 
 import (
-	"acdc"
-	"acdc/input"
 	"bufio"
 	"context"
 	"fmt"
@@ -12,6 +10,9 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/deslaughter/acdc"
+	"github.com/deslaughter/acdc/input"
 )
 
 type Turbine struct {

@@ -1,8 +1,9 @@
 package anl_test
 
 import (
-	"acdc/anl"
 	"testing"
+
+	"github.com/deslaughter/acdc/anl"
 )
 
 func TestPerformMBC(t *testing.T) {

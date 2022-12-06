@@ -1,10 +1,11 @@
 package input_test
 
 import (
-	"acdc/input"
 	"encoding/json"
 	"os"
 	"testing"
+
+	"github.com/deslaughter/acdc/input"
 )
 
 func TestReadInputFiles(t *testing.T) {

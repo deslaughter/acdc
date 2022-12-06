@@ -1,9 +1,10 @@
 package input_test
 
 import (
-	"acdc/input"
 	"os"
 	"testing"
+
+	"github.com/deslaughter/acdc/input"
 )
 
 func TestAeroDyn15Format(t *testing.T) {

@@ -1,8 +1,9 @@
 package main
 
 import (
-	"acdc/gui"
 	"os"
+
+	"github.com/deslaughter/acdc/gui"
 )
 
 type Conditions struct {

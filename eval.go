@@ -1,12 +1,13 @@
 package acdc
 
 import (
-	"acdc/input"
-	"acdc/turb"
 	"context"
 	"fmt"
 	"log"
 	"path/filepath"
+
+	"github.com/deslaughter/acdc/input"
+	"github.com/deslaughter/acdc/turb"
 )
 
 func EvaluateModel(ctx context.Context, modelPath, execPath, runDir string, conditions []Conditions) error {

@@ -1,9 +1,10 @@
 package main
 
 import (
-	"acdc/input"
 	"bytes"
 	"sort"
+
+	"github.com/deslaughter/acdc/input"
 
 	"fmt"
 	"go/format"

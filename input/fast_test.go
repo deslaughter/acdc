@@ -1,7 +1,7 @@
 package input_test
 
 import (
-	"acdc/input"
+	"github.com/deslaughter/acdc/input"
 	"os"
 	"testing"
 )

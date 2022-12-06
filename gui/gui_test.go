@@ -1,9 +1,10 @@
 package gui_test
 
 import (
-	"acdc/gui"
 	"os"
 	"testing"
+
+	"github.com/deslaughter/acdc/gui"
 )
 
 func TestRun(t *testing.T) {

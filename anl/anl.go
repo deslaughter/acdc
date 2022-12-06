@@ -1,13 +1,14 @@
 package anl
 
 import (
-	"acdc"
-	"acdc/input"
 	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"sort"
+
+	"github.com/deslaughter/acdc"
+	"github.com/deslaughter/acdc/input"
 )
 
 type Analysis struct {
