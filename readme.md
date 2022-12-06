@@ -12,6 +12,6 @@ This software is currently under development and the results it produces, if it 
 
 Building the `acdc` executable requires the [Go compiler](https://go.dev/dl/), version 1.19 or newer. Once the compiler is installed, run the following command from the terminal to download and build the program:
 
-`go get github.com/deslaughter/acdc`
+`go install github.com/deslaughter/acdc@latest`
 
 The `acdc` executable will be created in `~/go/bin/`.
