@@ -9,125 +9,342 @@
 
     <link type="text/css" rel="stylesheet" href="https://unpkg.com/bootstrap@4.6.2/dist/css/bootstrap.min.css" />
     <link type="text/css" rel="stylesheet" href="https://unpkg.com/bootstrap-vue@2.22.0/dist/bootstrap-vue.min.css" />
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es2015%2CIntersectionObserver"
-        crossorigin="anonymous"></script>
+    <!-- <script src="https://polyfill.io/v3/polyfill.min.js?features=es2015%2CIntersectionObserver"
+        crossorigin="anonymous"></script> -->
     <script src="https://unpkg.com/vue@2.6.12/dist/vue.min.js"></script>
     <script src="https://unpkg.com/bootstrap-vue@2.22.0/dist/bootstrap-vue.min.js"></script>
     <script src="https://unpkg.com/bootstrap-vue@2.22.0/dist/bootstrap-vue-icons.min.js"></script>
+    <script src="static/reconnecting-websocket.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
 </head>
 
 <body>
     <div id="app" v-cloak>
         <b-container v-if="loaded">
 
-            <b-card header="Turbine" class="mb-3">
-                <b-form-file ref="modelUpload" @change="filterModelFiles" class="d-none" no-traverse directory multiple>
-                </b-form-file>
-                <b-button @click="selectModelDir" variant="primary" block>Select Model
-                    Directory
-                </b-button>
-                <div v-if="modelFiles.length > 0">
-                    <b-button @click="importModel" variant="success" class="mt-3" block>Import Files</b-button>
-                    <table class="table table-sm mt-3 mb-0">
-                        <tr>
-                            <td>File</td>
-                            <td>Size (bytes)</td>
-                            <td></td>
-                        </tr>
-                        <tr v-for="file, i in modelFiles">
-                            <td>{{ file.$path }}</td>
-                            <td>{{ file.size }}</td>
-                            <td>
-                                <b-button size="sm" @click="modelFiles.splice(i, 1)" variant="outline-danger">Remove
-                                </b-button>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
+            <b-card header="Turbine Model" class="mb-3" no-body>
+                <b-list-group flush>
+                    <b-list-group-item>
+                        <b-form @change="updateAnalysis">
+                            <b-form-group label="Model Path" label-cols="2" label-align="right"
+                                description="Absolute path to main OpenFAST model file (.fst)"
+                                :state="analysis.ModelPathValid">
+                                <b-input-group>
+                                    <b-form-input v-model="analysis.ModelPath" :state="analysis.ModelPathValid" trim>
+                                    </b-form-input>
+                                    <b-input-group-append>
+                                        <b-button @click="importModel" variant="primary"
+                                            :disabled="!analysis.ModelPathValid">Import
+                                        </b-button>
+                                    </b-input-group-append>
+                                </b-input-group>
+                            </b-form-group>
+                            <b-alert :show="importAlert!=''" variant="danger" class="mt-3 mb-1">{{ importAlert }}
+                            </b-alert>
+                        </b-form>
+                    </b-list-group-item>
+
+                    <b-list-group-item v-if="analysis.Model !== null">
+                        <b-form @change="debounceUpdateAnalysis">
+
+                            <b-form-group label="Simulation" label-cols="2" label-size="lg" class="mt-2"
+                                label-class="font-weight-bold pt-0">
+                                <b-form-group label="Echo" label-cols="2" label-align="right"
+                                    description="Echo input data to &lt;RootName&gt;.ech">
+                                    <b-form-select v-model="analysis.Model.FAST.Echo" :options="trueFalseOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                                <b-form-group label="TMax" label-cols="2" label-align="right"
+                                    description="Total run time (s)" :state="Number.isFinite(analysis.Model.FAST.TMax)">
+                                    <b-form-input v-model="analysis.Model.FAST.TMax" number
+                                        :state="Number.isFinite(analysis.Model.FAST.TMax)">
+                                    </b-form-input>
+                                </b-form-group>
+                                <b-form-group label="DT" label-cols="2" label-align="right"
+                                    description="Recommended module time step (s)"
+                                    :state="Number.isFinite(analysis.Model.FAST.DT)">
+                                    <b-form-input v-model="analysis.Model.FAST.DT" number
+                                        :state="Number.isFinite(analysis.Model.FAST.DT)">
+                                    </b-form-input>
+                                </b-form-group>
+                                <b-form-group label="InterpOrder" label-cols="2" label-align="right"
+                                    description="Interpolation order for input/output time history">
+                                    <b-form-select v-model="analysis.Model.FAST.InterpOrder" :options="interpOrderOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                            </b-form-group>
+
+                            <b-form-group label="Modules" label-cols="2" label-size="lg" class="mb-0"
+                                label-class="font-weight-bold pt-0">
+                                <b-form-group label="CompElast" label-cols="2" label-align="right"
+                                    description="Compute structural dynamics">
+                                    <b-form-select v-model="analysis.Model.FAST.CompElast" :options="compElastOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                                <b-form-group label="CompAero" label-cols="2" label-align="right"
+                                    description="Compute aerodynamic loads">
+                                    <b-form-select v-model="analysis.Model.FAST.CompAero" :options="compAeroOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                                <b-form-group label="CompServo" label-cols="2" label-align="right"
+                                    description="Compute control and electrical-drive dynamics">
+                                    <b-form-select v-model="analysis.Model.FAST.CompServo" :options="compServoOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                                <b-form-group label="CompHydro" label-cols="2" label-align="right"
+                                    description="Compute hydrodynamic loads">
+                                    <b-form-select v-model="analysis.Model.FAST.CompHydro" :options="compHydroOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                                <b-form-group label="CompSub" label-cols="2" label-align="right"
+                                    description="Compute sub-structural dynamics">
+                                    <b-form-select v-model="analysis.Model.FAST.CompSub" :options="compSubOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                            </b-form-group>
+
+                            <b-form-group label="Output" label-cols="2" label-size="lg" class="mt-2"
+                                label-class="font-weight-bold pt-0">
+                                <b-form-group label="SumPrint" label-cols="2" label-align="right"
+                                    description="SumPrint input data to &lt;RootName&gt;.sum">
+                                    <b-form-select v-model="analysis.Model.FAST.SumPrint" :options="trueFalseOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                                <b-form-group label="DT_Out" label-cols="2" label-align="right"
+                                    description="Time step for tabular output (s)"
+                                    :state="Number.isFinite(analysis.Model.FAST.DT_Out)||'DT_Out' in analysis.Model.FAST.Defaults">
+                                    <b-form-input v-model="analysis.Model.FAST.DT_Out" number
+                                        :state="Number.isFinite(analysis.Model.FAST.DT_Out)||'DT_Out' in analysis.Model.FAST.Defaults">
+                                    </b-form-input>
+                                </b-form-group>
+                                <b-form-group label="TStart" label-cols="2" label-align="right"
+                                    description="Time to begin tabular output (s)"
+                                    :state="Number.isFinite(analysis.Model.FAST.TStart)">
+                                    <b-form-input v-model="analysis.Model.FAST.TStart" number
+                                        :state="Number.isFinite(analysis.Model.FAST.TStart)">
+                                    </b-form-input>
+                                </b-form-group>
+                                <b-form-group label="OutFileFmt" label-cols="2" label-align="right"
+                                    description="Format for tabular (time-marching) output file">
+                                    <b-form-select v-model="analysis.Model.FAST.OutFileFmt" :options="outFileFmtOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                            </b-form-group>
+
+                            <b-form-group label="Linearization" label-cols="2" label-size="lg" class="mt-2"
+                                label-class="font-weight-bold pt-0">
+                                <b-form-group label="Linearize" label-cols="2" label-align="right"
+                                    description="Linearization analysis">
+                                    <b-form-select v-model="analysis.Model.FAST.Linearize" :options="trueFalseOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                                <b-form-group label="CalcSteady" label-cols="2" label-align="right"
+                                    description="Calculate a steady-state periodic operating point before linearization?">
+                                    <b-form-select v-model="analysis.Model.FAST.CalcSteady" :options="trueFalseOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                                <b-form-group label="TrimCase" label-cols="2" label-align="right"
+                                    description="Controller parameter to be trimmed"
+                                    v-if="analysis.Model.FAST.CalcSteady">
+                                    <b-form-select v-model="analysis.Model.FAST.TrimCase" :options="trimCaseOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                                <b-form-group label="TrimTol" label-cols="2" label-align="right"
+                                    description="Tolerance for the rotational speed convergence"
+                                    v-if="analysis.Model.FAST.CalcSteady"
+                                    :state="Number.isFinite(analysis.Model.FAST.TrimTol)">
+                                    <b-form-input v-model="analysis.Model.FAST.TrimTol" number
+                                        :state="Number.isFinite(analysis.Model.FAST.TrimTol)"></b-form-input>
+                                </b-form-group>
+                                <b-form-group label="NLinTimes" label-cols="2" label-align="right"
+                                    description="Number of times to linearize [>=1]"
+                                    :state="Number.isInteger(analysis.Model.FAST.NLinTimes)">
+                                    <b-form-input v-model="analysis.Model.FAST.NLinTimes" number type="number" min="1"
+                                        max="360" :state="Number.isInteger(analysis.Model.FAST.NLinTimes)"
+                                        @change="updateLinTimes">
+                                    </b-form-input>
+                                </b-form-group>
+                                <b-form-group label="LinTimes" label-cols="2" label-align="right"
+                                    description="List of times at which to linearize (s) [1 to NLinTimes]"
+                                    v-if="!analysis.Model.FAST.CalcSteady"
+                                    :state="Number.isFinite(analysis.Model.FAST.LinTimes)">
+                                    <b-form-input v-for="(n,i) in analysis.Model.FAST.NLinTimes" :key="i"
+                                        v-model="analysis.Model.FAST.LinTimes[i]" number
+                                        :state="Number.isFinite(analysis.Model.FAST.LinTimes[i])" class="mb-2">
+                                    </b-form-input>
+                                    {{analysis.Model.FAST.LinTimes}}
+                                </b-form-group>
+                                <b-form-group label="LinInputs" label-cols="2" label-align="right"
+                                    description="Inputs included in linearization">
+                                    <b-form-select v-model="analysis.Model.FAST.LinInputs" :options="linInputsOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                                <b-form-group label="LinOutputs" label-cols="2" label-align="right"
+                                    description="Outputs included in linearization">
+                                    <b-form-select v-model="analysis.Model.FAST.LinOutputs" :options="linOutputsOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                                <b-form-group label="LinOutJac" label-cols="2" label-align="right"
+                                    description="Include full Jacobians in linearization output (for debug)"
+                                    v-if="(analysis.Model.FAST.LinInputs==2)&&(analysis.Model.FAST.LinOutputs==2)">
+                                    <b-form-select v-model="analysis.Model.FAST.LinOutJac" :options="trueFalseOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                                <b-form-group label="LinOutMod" label-cols="2" label-align="right"
+                                    description="Write module-level linearization output files in addition to output for full system?">
+                                    <b-form-select v-model="analysis.Model.FAST.LinOutMod" :options="trueFalseOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                            </b-form-group>
+
+                            <b-form-group label="ElastoDyn" label-cols="2" label-size="lg" class="mb-0"
+                                label-class="font-weight-bold pt-0">
+                                <b-form-group label="FlapDOF1" label-cols="2" label-align="right"
+                                    description="First flapwise blade mode DOF">
+                                    <b-form-select v-model="analysis.Model.ElastoDyn.FlapDOF1" :options="trueFalseOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                                <b-form-group label="FlapDOF2" label-cols="2" label-align="right"
+                                    description="Second flapwise blade mode DOF">
+                                    <b-form-select v-model="analysis.Model.ElastoDyn.FlapDOF2" :options="trueFalseOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                                <b-form-group label="EdgeDOF" label-cols="2" label-align="right"
+                                    description="First edgewise blade mode DOF">
+                                    <b-form-select v-model="analysis.Model.ElastoDyn.EdgeDOF" :options="trueFalseOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                                <b-form-group label="TeetDOF" label-cols="2" label-align="right"
+                                    description="Rotor-teeter DOF (flag) [unused for 3 blades]"
+                                    v-if="analysis.Model.ElastoDyn.NumBl==2">
+                                    <b-form-select v-model="analysis.Model.ElastoDyn.TeetDOF" :options="trueFalseOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                                <b-form-group label="DrTrDOF" label-cols="2" label-align="right"
+                                    description="Drivetrain rotational-flexibility DOF">
+                                    <b-form-select v-model="analysis.Model.ElastoDyn.DrTrDOF" :options="trueFalseOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                                <b-form-group label="GenDOF" label-cols="2" label-align="right"
+                                    description="Generator DOF">
+                                    <b-form-select v-model="analysis.Model.ElastoDyn.GenDOF" :options="trueFalseOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                                <b-form-group label="TwFADOF1" label-cols="2" label-align="right"
+                                    description="First fore-aft tower bending-mode DOF">
+                                    <b-form-select v-model="analysis.Model.ElastoDyn.TwFADOF1" :options="trueFalseOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                                <b-form-group label="TwFADOF2" label-cols="2" label-align="right"
+                                    description="Second fore-aft tower bending-mode DOF">
+                                    <b-form-select v-model="analysis.Model.ElastoDyn.TwFADOF2" :options="trueFalseOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                                <b-form-group label="TwSSDOF1" label-cols="2" label-align="right"
+                                    description="First side-to-side tower bending-mode DOF">
+                                    <b-form-select v-model="analysis.Model.ElastoDyn.TwSSDOF1" :options="trueFalseOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                                <b-form-group label="TwSSDOF2" label-cols="2" label-align="right"
+                                    description="Second side-to-side tower bending-mode DOF">
+                                    <b-form-select v-model="analysis.Model.ElastoDyn.TwSSDOF2" :options="trueFalseOpts">
+                                    </b-form-select>
+                                </b-form-group>
+                            </b-form-group>
+                        </b-form>
+                    </b-list-group-item>
+
+                </b-list-group>
             </b-card>
 
-            <b-card header="Conditions" class="mb-3">
+            <b-card header="Conditions" class="mb-3" no-body>
 
-                <table class="table table-sm">
+                <table class="table text-center mb-0">
                     <tr>
-                        <td>Wind Speed</td>
-                        <td>Rotor Speed</td>
-                        <td>Blade Pitch</td>
-                        <td>Tower Top Initial<br>Displacement Fore-Aft</td>
-                        <td>Tower Top Initial<br>Displacement Side-Side</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td>(m/s)</td>
-                        <td>(rpm)</td>
-                        <td>(deg)</td>
-                        <td>(m)</td>
-                        <td>(m)</td>
-                        <td></td>
+                        <th class="align-middle">ID</th>
+                        <th class="align-middle">Wind Speed<br>(m/s)</th>
+                        <th class="align-middle">Rotor Speed<br>(rpm)</th>
+                        <th class="align-middle">Blade Pitch<br>(deg)</th>
+                        <th class="align-middle">Tower Top Initial<br>Disp. Fore-Aft<br>(m)</th>
+                        <th class="align-middle">Tower Top Initial<br>Disp. Side-Side<br>(m)</th>
+                        <th class="align-middle"></th>
                     </tr>
                     <tr v-for="c,i in analysis.Conditions">
-                        <td>{{ c.WindSpeed }}</td>
-                        <td>{{ c.RotorSpeed }}</td>
-                        <td>{{ c.BladePitch }}</td>
-                        <td>{{ c.TowerTopDispForeAft }}</td>
-                        <td>{{ c.TowerTopDispSideSide }}</td>
+                        <td class="align-middle">{{ i+1 }}</td>
+                        <td class="align-middle">{{ c.WindSpeed }}</td>
+                        <td class="align-middle">{{ c.RotorSpeed }}</td>
+                        <td class="align-middle">{{ c.BladePitch }}</td>
+                        <td class="align-middle">{{ c.TowerTopDispForeAft }}</td>
+                        <td class="align-middle">{{ c.TowerTopDispSideSide }}</td>
                         <td>
-                            <b-button @click="removeConditions" size="sm" block>Remove</b-button>
+                            <b-button @click="removeConditions" variant="primary">Remove</b-button>
                         </td>
                     </tr>
                     <tr>
+                        <td></td>
                         <td>
-                            <b-form-input number v-model="conditions.WindSpeed"></b-form-input>
+                            <b-form-input number v-model="conditions.WindSpeed" class="text-center"></b-form-input>
                         </td>
                         <td>
-                            <b-form-input number v-model="conditions.RotorSpeed"></b-form-input>
+                            <b-form-input number v-model="conditions.RotorSpeed" class="text-center"></b-form-input>
                         </td>
                         <td>
-                            <b-form-input number v-model="conditions.BladePitch"></b-form-input>
+                            <b-form-input number v-model="conditions.BladePitch" class="text-center"></b-form-input>
                         </td>
                         <td>
-                            <b-form-input number v-model="conditions.TowerTopDispForeAft"></b-form-input>
+                            <b-form-input number v-model="conditions.TowerTopDispForeAft" class="text-center">
+                            </b-form-input>
                         </td>
                         <td>
-                            <b-form-input number v-model="conditions.TowerTopDispSideSide"></b-form-input>
+                            <b-form-input number v-model="conditions.TowerTopDispSideSide" class="text-center">
+                            </b-form-input>
                         </td>
                         <td>
-                            <b-button @click="addConditions" size="sm" block>Add</b-button>
+                            <b-button @click="addConditions" block variant="primary">Add</b-button>
                         </td>
                     </tr>
                 </table>
             </b-card>
 
-            <b-card header="Evaluate" class="mb-3">
-                <b-form-group label="OpenFAST Path" description="Absolute path to OpenFAST executable."
-                    :state="analysis.ExecPath.length>0">
-                    <b-form-input v-model="analysis.ExecPath" :state="analysis.ExecPath.length>0" trim></b-form-input>
-                </b-form-group>
-                <!-- <b-form-group label="Analysis Type" description="Minimum wind speed for evaluation">
-                    <b-form-input number v-model="analysis.MinWindSpeed">
-                    </b-form-input>
-                </b-form-group>
-                <b-form-group label="Minimum Wind Speed" description="Minimum wind speed for evaluation"
-                    :state="analysis.MinWindSpeed>=0">
-                    <b-form-input number v-model="analysis.MinWindSpeed" :state="analysis.MinWindSpeed>=0">
-                    </b-form-input>
-                    <b-form-input number v-model="analysis.MaxWindSpeed" :state="analysis.MaxWindSpeed>=0">
-                    </b-form-input>
-                </b-form-group> -->
-                <!-- <b-form-group label="Maximum Wind Speed" description="Maximum wind speed for evaluation"
-                    :state="analysis.MaxWindSpeed>=0">
-                    </b-form-input>
-                </b-form-group> -->
-                <!-- <b-form-group label="Minimum Rotor Speed" description="Minimum rotor speed for evaluation"
-                    :state="analysis.MinRotorSpeed>=0">
-                    <b-form-input number v-model="analysis.MinRotorSpeed" :state="analysis.MinRotorSpeed>=0">
-                    </b-form-input>
-                </b-form-group>
-                <b-form-group label="Maximum Rotor Speed" description="Maximum rotor speed for evaluation"
-                    :state="analysis.MaxRotorSpeed>=0">
-                    <b-form-input number v-model="analysis.MaxRotorSpeed" :state="analysis.MaxRotorSpeed>=0">
-                    </b-form-input>
-                </b-form-group> -->
+            <b-card header="Evaluate" class="mb-3" no-body>
+                <b-card-body>
+                    <b-form>
+                        <b-form-group label="OpenFAST Path" label-cols="2" label-align="right"
+                            description="Absolute path to OpenFAST executable" :state="analysis.ExecPathValid">
+                            <b-form-input v-model="analysis.ExecPath" :state="analysis.ExecPathValid" trim
+                                @change="updateAnalysis"></b-form-input>
+                        </b-form-group>
+                        <b-form-group label="Number of CPUs" label-cols="2" label-align="right"
+                            description="Number of CPUs to use in evaluating model">
+                            <b-form-spinbutton v-model="analysis.NumCPUs" min="1" max="24" @change="updateAnalysis">
+                            </b-form-spinbutton>
+                        </b-form-group>
+                    </b-form>
+
+                    <div class="text-right">
+                        <b-button @click="evalStart" variant="primary">Start
+                        </b-button>
+                        <b-button @click="evalCancel" variant="danger">Cancel
+                        </b-button>
+                    </div>
+                </b-card-body>
+
+                <table class="table mb-0" v-if="evalStatus.length>0">
+                    <tr>
+                        <td class="text-center" width="5%">ID</td>
+                        <td class="text-center" width="15%">State</td>
+                        <td>Progress</td>
+                    </tr>
+                    <tr v-for="s in evalStatus">
+                        <td class="text-center">{{ s.ID }}</td>
+                        <td class="text-center">{{ s.State }}</td>
+                        <td>
+                            <b-progress :value="s.Progress" :variant="s.Progress<100?'primary':'success'"
+                                v-if="s.Error==''" class="mt-1"></b-progress>
+                            <span v-else class="text-danger">{{ s.Error }}</span>
+                        </td>
+                    </tr>
+                </table>
             </b-card>
 
         </b-container>

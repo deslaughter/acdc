@@ -17,3 +17,7 @@
 testdata
 
 .DS_Store
+
+/test
+
+.vscode

@@ -70,7 +70,11 @@ func parseText(s any, schema Schema, lines []string) error {
 		for {
 			line, lines = lines[0], lines[1:]
 			line, _, _ = strings.Cut(line, "- ")
-			ind := strings.Index(strings.ToLower(line), keywordLower)
+			line, _, _ = strings.Cut(line, "! ")
+			ind := strings.LastIndex(strings.ToLower(line), keywordLower)
+			if ind == -1 {
+				ind = strings.LastIndex(strings.ToLower(line), strings.ToLower(entry.Field))
+			}
 			if ind != -1 {
 				line = strings.TrimSpace(line[:ind])
 				break

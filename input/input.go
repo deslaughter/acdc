@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-type Turbine struct {
+type Model struct {
 	AeroDyn14       *AeroDyn14
 	AeroDyn15       *AeroDyn15
 	AD15AirfoilInfo []*AD15AirfoilInfo
@@ -22,12 +22,12 @@ type Turbine struct {
 	ServoDyn        *ServoDyn
 }
 
-func ReadFiles(fastFilePath string) (*Turbine, error) {
+func ReadFiles(fastFilePath string) (*Model, error) {
 
 	var err error
 
 	// Create inputs structure
-	inp := Turbine{
+	inp := Model{
 		FAST: NewFAST(),
 	}
 
@@ -269,7 +269,7 @@ func ReadFiles(fastFilePath string) (*Turbine, error) {
 	return &inp, nil
 }
 
-func (inp *Turbine) WriteFiles(fastFilePath string) error {
+func (inp *Model) WriteFiles(fastFilePath string) error {
 
 	rootDir := filepath.Dir(fastFilePath)
 	baseName := strings.TrimSuffix(filepath.Base(fastFilePath), filepath.Ext(fastFilePath))

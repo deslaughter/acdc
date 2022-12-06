@@ -1,6 +1,7 @@
 package acdc
 
 type Conditions struct {
+	ID                   int
 	WindSpeed            float64 // Wind speed (m/s)
 	BladePitch           float64 // Blade pitch (deg)
 	RotorSpeed           float64 // Rotor speed in (rpm)

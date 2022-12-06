@@ -22,7 +22,7 @@ func TestEvalConditions(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	execPath := "/Users/dslaught/projects/openfast-mac/install/bin/openfast"
+	execPath := "openfast"
 
 	err := acdc.EvaluateModel(ctx, modelPath, execPath, runDir, conditions)
 	if err != nil {
