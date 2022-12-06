@@ -12,7 +12,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/deslaughter/acdc"
 	"github.com/deslaughter/acdc/anl"
 	"github.com/deslaughter/acdc/input"
 
@@ -120,7 +119,7 @@ func putAnalysisHandler(w http.ResponseWriter, r *http.Request) {
 func updateConditionsHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Read condition from body
-	conditions := []acdc.Conditions{}
+	conditions := []anl.Conditions{}
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&conditions); err != nil {
 		http.Error(w, fmt.Sprintf("error decoding condition: %s", err),

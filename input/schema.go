@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-//go:generate go run ../bin/gen-types/gen-types.go
+//go:generate go run gen-types/gen-types.go
 
 var Schemas = map[string]Schema{
 	"AD15AirfoilInfo": AD15AirfoilInfoSchema,

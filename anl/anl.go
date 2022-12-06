@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/deslaughter/acdc"
 	"github.com/deslaughter/acdc/input"
 )
 
@@ -18,10 +17,19 @@ type Analysis struct {
 	ExecPath       string
 	ExecPathValid  bool
 	NumCPUs        int
-	Conditions     []acdc.Conditions
+	Conditions     []Conditions
 	Viz            VizData
 	Model          *input.Model
 	Campbell       *CampbellData
+}
+
+type Conditions struct {
+	ID                   int
+	WindSpeed            float64 // Wind speed (m/s)
+	BladePitch           float64 // Blade pitch (deg)
+	RotorSpeed           float64 // Rotor speed in (rpm)
+	TowerTopDispForeAft  float64 // Tower Top Displacement Fore-Aft (m)
+	TowerTopDispSideSide float64 // Tower Top Displacement Side-Side (m)
 }
 
 func New() *Analysis {
@@ -105,7 +113,7 @@ type EvalStatus struct {
 	Error    string
 }
 
-func (a *Analysis) Evaluate(ctx context.Context, conditions acdc.Conditions,
+func (a *Analysis) Evaluate(ctx context.Context, conditions Conditions,
 	statusChan chan<- EvalStatus) error {
 
 	// Make a copy of the model

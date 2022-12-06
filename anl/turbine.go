@@ -11,21 +11,20 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/deslaughter/acdc"
 	"github.com/deslaughter/acdc/input"
 )
 
 type Turbine struct {
 	ID             int
 	Name           string
-	OperatingPoint acdc.Conditions
+	OperatingPoint Conditions
 	Dir            string
 	ModelPath      string
 	LogPath        string
 	Model          *input.Model
 }
 
-func NewTurbine(c acdc.Conditions, model *input.Model) *Turbine {
+func NewTurbine(c Conditions, model *input.Model) *Turbine {
 
 	// Create turbine instance
 	turb := &Turbine{
